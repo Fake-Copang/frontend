@@ -6,6 +6,7 @@ import { useRoomStore } from '../store/useRoomStore'
 
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max)
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const topPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const wallPlanes = [
   { wall: 'back', plane: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), along: 'x' },
   { wall: 'left', plane: new THREE.Plane(new THREE.Vector3(1, 0, 0), 0), along: 'z' },
@@ -23,10 +24,33 @@ export default function DragController() {
     const hit = new THREE.Vector3()
     const { updateDrag, endDrag } = useRoomStore.getState()
 
-    const toFloor = (item, current) => {
-      if (!raycaster.ray.intersectPlane(floorPlane, hit)) return null
+    const toFloor = (item, current, items, placements) => {
       const rot = current?.rot ?? 0
       const { w, d } = footprint(item, rot)
+      if (item.stackable) {
+        let best = null
+        for (const [id, bp] of Object.entries(placements)) {
+          if (id === item.id) continue
+          const base = items.find((i) => i.id === id)
+          if (!base?.surface) continue
+          const r = footprint(base, bp.rot)
+          topPlane.constant = -base.height
+          if (!raycaster.ray.intersectPlane(topPlane, hit)) continue
+          if (hit.x < bp.x || hit.x > bp.x + r.w || hit.z < bp.z || hit.z > bp.z + r.d) continue
+          const dist = raycaster.ray.origin.distanceTo(hit)
+          if (best && best.dist < dist) continue
+          best = {
+            dist,
+            target: {
+              x: clamp(Math.round(hit.x - w / 2), bp.x, bp.x + r.w - w),
+              z: clamp(Math.round(hit.z - d / 2), bp.z, bp.z + r.d - d),
+              rot,
+            },
+          }
+        }
+        if (best) return best.target
+      }
+      if (!raycaster.ray.intersectPlane(floorPlane, hit)) return null
       return {
         x: clamp(Math.round(hit.x - w / 2), 0, GRID - w),
         z: clamp(Math.round(hit.z - d / 2), 0, GRID - d),
@@ -70,7 +94,7 @@ export default function DragController() {
         const target = toWall(item)
         updateDrag(target, target ? null : 'wallOnly')
       } else {
-        updateDrag(toFloor(item, placements[dragId]), 'outside')
+        updateDrag(toFloor(item, placements[dragId], items, placements), 'outside')
       }
     }
 

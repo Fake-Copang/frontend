@@ -20,7 +20,35 @@ export function sizeLabel(item) {
   return isWall(item) ? `${item.w}×${item.h}칸` : `${item.w}×${item.d}칸`
 }
 
-function cellsOf(item, p) {
+function rectOf(item, p) {
+  const { w, d } = footprint(item, p.rot)
+  return { x: p.x, z: p.z, w, d }
+}
+
+const contains = (outer, inner) =>
+  inner.x >= outer.x && inner.z >= outer.z && inner.x + inner.w <= outer.x + outer.w && inner.z + inner.d <= outer.z + outer.d
+
+export function baseUnder(items, placements, itemId, p) {
+  const item = items.find((i) => i.id === itemId)
+  if (!item?.stackable || !p || isWall(item)) return null
+  const rect = rectOf(item, p)
+  for (const [id, bp] of Object.entries(placements)) {
+    if (id === itemId) continue
+    const base = items.find((i) => i.id === id)
+    if (base?.surface && contains(rectOf(base, bp), rect)) return base
+  }
+  return null
+}
+
+export function elevationOf(items, placements, itemId, p) {
+  return baseUnder(items, placements, itemId, p)?.height ?? 0
+}
+
+export function childrenOf(items, placements, baseId) {
+  return Object.keys(placements).filter((id) => baseUnder(items, placements, id, placements[id])?.id === baseId)
+}
+
+function cellsOf(item, p, layer = 'floor') {
   const cells = []
   if (isWall(item)) {
     for (let c = p.col; c < p.col + item.w; c++)
@@ -28,7 +56,7 @@ function cellsOf(item, p) {
   } else {
     const { w, d } = footprint(item, p.rot)
     for (let x = p.x; x < p.x + w; x++)
-      for (let z = p.z; z < p.z + d; z++) cells.push(`floor:${x}:${z}`)
+      for (let z = p.z; z < p.z + d; z++) cells.push(`${layer}:${x}:${z}`)
   }
   return cells
 }
@@ -45,13 +73,14 @@ export function checkPlacement(items, placements, itemId, target) {
   const item = items.find((i) => i.id === itemId)
   if (!item || !target) return { ok: false, reason: 'outside' }
   if (!inBounds(item, target)) return { ok: false, reason: 'outside' }
+  const layerOf = (id, p) => (baseUnder(items, placements, id, p) ? 'top' : 'floor')
   const taken = new Set()
   for (const [id, p] of Object.entries(placements)) {
     if (id === itemId) continue
     const other = items.find((i) => i.id === id)
-    if (other) cellsOf(other, p).forEach((c) => taken.add(c))
+    if (other) cellsOf(other, p, layerOf(id, p)).forEach((c) => taken.add(c))
   }
-  const hit = cellsOf(item, target).some((c) => taken.has(c))
+  const hit = cellsOf(item, target, layerOf(itemId, target)).some((c) => taken.has(c))
   return hit ? { ok: false, reason: 'overlap' } : { ok: true, reason: null }
 }
 

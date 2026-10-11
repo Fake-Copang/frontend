@@ -1,9 +1,9 @@
 import { ROW_H, footprint } from '../store/grid'
 
-export function floorTransform(item, p) {
+export function floorTransform(item, p, elevation = 0) {
   const { w, d } = footprint(item, p.rot)
   return {
-    position: [p.x + w / 2, item.height / 2, p.z + d / 2],
+    position: [p.x + w / 2, elevation + item.height / 2, p.z + d / 2],
     rotationY: -p.rot * (Math.PI / 2),
   }
 }
@@ -24,12 +24,12 @@ export function floorSize(item) {
   return [item.w - 0.08, item.height, item.d - 0.08]
 }
 
-export function toolbarPosition(item, p) {
+export function toolbarPosition(item, p, elevation = 0) {
   if (item.kind === 'wall') {
     const { position } = wallTransform(item, p)
     const top = (p.row + item.h) * ROW_H + 0.35
     return p.wall === 'back' ? [position[0], top, 0.3] : [0.3, top, position[2]]
   }
-  const { position } = floorTransform(item, p)
-  return [position[0], item.height + 0.45, position[2]]
+  const { position } = floorTransform(item, p, elevation)
+  return [position[0], elevation + item.height + 0.45, position[2]]
 }

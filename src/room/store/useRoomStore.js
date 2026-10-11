@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { fetchRoom, saveRoom } from '../api/roomApi'
-import { GRID, REASON, checkPlacement, footprint, placementsEqual, samePlacement } from './grid'
+import { GRID, REASON, checkPlacement, childrenOf, footprint, placementsEqual, samePlacement } from './grid'
 
 export const useRoomStore = create((set, get) => ({
   items: [],
@@ -68,13 +68,22 @@ export const useRoomStore = create((set, get) => ({
     set({ drag: { ...drag, target, ok: res.ok, reason: res.reason, moved: true } })
   },
 
-  endDrag: () => {
-    const { drag, placements } = get()
+    endDrag: () => {
+    const { drag, placements, items } = get()
     if (!drag) return
     set({ drag: null })
     if (!drag.moved) return
-    if (drag.ok && !samePlacement(placements[drag.itemId], drag.target)) {
-      get().commit({ ...placements, [drag.itemId]: drag.target })
+    const from = placements[drag.itemId]
+    if (drag.ok && !samePlacement(from, drag.target)) {
+      const next = { ...placements, [drag.itemId]: drag.target }
+      if (from && 'x' in from) {
+        const dx = drag.target.x - from.x
+        const dz = drag.target.z - from.z
+        for (const id of childrenOf(items, placements, drag.itemId)) {
+          next[id] = { ...placements[id], x: placements[id].x + dx, z: placements[id].z + dz }
+        }
+      }
+      get().commit(next)
     } else if (!drag.ok && drag.reason) {
       get().notify(REASON[drag.reason])
     }
@@ -85,6 +94,10 @@ export const useRoomStore = create((set, get) => ({
     const item = items.find((i) => i.id === selectedId)
     const p = placements[selectedId]
     if (!item || !p || item.kind !== 'floor') return
+    if (childrenOf(items, placements, selectedId).length) {
+      get().notify('위에 놓인 물건이 있어서 회전할 수 없어요')
+      return
+    }
     const rot = (p.rot + dir + 4) % 4
     const { w, d } = footprint(item, rot)
     const target = { x: Math.min(p.x, GRID - w), z: Math.min(p.z, GRID - d), rot }
@@ -94,12 +107,15 @@ export const useRoomStore = create((set, get) => ({
   },
 
   removeSelected: () => {
-    const { selectedId, placements } = get()
+    const { selectedId, placements, items } = get()
     if (!placements[selectedId]) return
+    const children = childrenOf(items, placements, selectedId)
     const next = { ...placements }
     delete next[selectedId]
+    children.forEach((id) => delete next[id])
     get().commit(next)
     set({ selectedId: null })
+    if (children.length) get().notify('위에 있던 물건도 함께 목록으로 옮겼어요')
   },
 
   save: async () => {

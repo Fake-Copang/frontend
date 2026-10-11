@@ -1,21 +1,25 @@
 import { Html } from '@react-three/drei'
 import { useRoomStore } from '../store/useRoomStore'
 import { toolbarPosition } from './transforms'
+import { elevationOf } from '../store/grid'
 import { BoxOutIcon, RotateLeftIcon, RotateRightIcon } from '../ui/Icons'
 
 export default function SelectionToolbar() {
   const mode = useRoomStore((s) => s.mode)
   const drag = useRoomStore((s) => s.drag)
   const selectedId = useRoomStore((s) => s.selectedId)
-  const placement = useRoomStore((s) => s.placements[s.selectedId])
-  const item = useRoomStore((s) => s.items.find((i) => i.id === s.selectedId))
+  const items = useRoomStore((s) => s.items)
+  const placements = useRoomStore((s) => s.placements)
+  const item = items.find((i) => i.id === selectedId)
   const rotate = useRoomStore((s) => s.rotate)
   const removeSelected = useRoomStore((s) => s.removeSelected)
 
+  const placement = placements[selectedId]
   if (mode !== 'edit' || drag || !selectedId || !placement || !item) return null
+  const elevation = item.kind === 'wall' ? 0 : elevationOf(items, placements, item.id, placement)
 
   return (
-    <Html position={toolbarPosition(item, placement)} center zIndexRange={[100, 50]}>
+    <Html position={toolbarPosition(item, placement, elevation)} center zIndexRange={[100, 50]}>
       <div className="item-toolbar" onPointerDown={(e) => e.stopPropagation()}>
         {item.kind === 'floor' && (
           <>
