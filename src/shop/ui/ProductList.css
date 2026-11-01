@@ -1,0 +1,244 @@
+.shop {
+  --blue: #2d5bd6;
+  --blue-dark: #2149b3;
+  --ink: #1c1b19;
+  --muted: #8a867d;
+  --line: #e6e4df;
+  --canvas: #f6f5f2;
+
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 80vh;
+  background: #fff;
+  color: var(--ink);
+  font-family: 'Pretendard', -apple-system, 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+}
+
+/* ---------- 왼쪽 패널 ---------- */
+.shop__sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 18px;
+  border-right: 1px solid var(--line);
+}
+
+.shop__brand {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.shop__sidebar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.shop__sidebar-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.shop__count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.shop__search {
+  display: flex;
+  gap: 6px;
+}
+
+.shop__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.shop__search input:focus {
+  outline: 2px solid #c7d4f7;
+  border-color: var(--blue);
+}
+
+.shop__search button {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.shop__search button:hover {
+  background: var(--canvas);
+}
+
+/* 필터 칩: 선택되면 검정 채움 (방 화면의 '전체/미배치/배치됨'과 같은 톤) */
+.shop__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shop__chips button {
+  padding: 5px 12px;
+  border: 1px solid #dcdad4;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.shop__chips button:hover {
+  background: var(--canvas);
+}
+
+.shop__chips button.is-active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.shop__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------- 오른쪽 상품 영역 (연회색 캔버스) ---------- */
+.shop__main {
+  background: var(--canvas);
+  padding: 24px;
+}
+
+.shop__status {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.shop__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- 상품 카드 ---------- */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.product-card__image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  background: #eceae4;
+}
+
+.product-card__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.product-card__no-image {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.product-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
+}
+
+.product-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 18px;
+}
+
+/* 방 화면의 '바닥 1×1칸' 칩처럼 베이지 배경의 작은 태그 */
+.chip-tag,
+.chip-size {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.chip-tag {
+  background: #f1ebdf;
+  color: #7a6a4f;
+}
+
+.chip-size {
+  background: transparent;
+  color: var(--muted);
+  padding-left: 0;
+}
+
+.product-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.product-card__price {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.product-card__add-btn {
+  margin-top: 6px;
+  padding: 9px;
+  border: none;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.product-card__add-btn:hover {
+  background: var(--blue-dark);
+}
+
+@media (max-width: 800px) {
+  .shop {
+    grid-template-columns: 1fr;
+  }
+
+  .shop__sidebar {
+    position: static;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+}

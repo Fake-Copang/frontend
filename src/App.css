@@ -1,0 +1,26 @@
+body {
+  margin: 0;
+}
+
+.app-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e6e4df;
+}
+
+.app-tabs button {
+  padding: 6px 14px;
+  border: 1px solid #dcdad4;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.app-tabs button.is-active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
