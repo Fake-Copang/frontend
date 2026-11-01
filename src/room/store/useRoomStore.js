@@ -6,6 +6,7 @@ export const useRoomStore = create((set, get) => ({
   items: [],
   placements: {},
   saved: {},
+  version: null, 
   status: 'loading',
   error: null,
   mode: 'view',
@@ -21,8 +22,8 @@ export const useRoomStore = create((set, get) => ({
   load: async () => {
     set({ status: 'loading', error: null })
     try {
-      const { items, placements } = await fetchRoom()
-      set({ items, placements, saved: placements, status: 'ready' })
+      const { room, items, placements } = await fetchRoom()
+      set({ items, placements, saved: placements, version: room?.version ?? null, status: 'ready' })
     } catch (e) {
       set({ status: 'error', error: e.message })
     }
@@ -118,15 +119,16 @@ export const useRoomStore = create((set, get) => ({
     if (children.length) get().notify('위에 있던 물건도 함께 목록으로 옮겼어요')
   },
 
-  save: async () => {
-    const { placements } = get()
+   save: async () => {
+    const { placements, version } = get()
     set({ saving: true })
     try {
-      await saveRoom(placements)
-      set({ saved: placements, mode: 'view', saving: false, selectedId: null, past: [], future: [] })
+      const result = await saveRoom(placements, version)
+      set({ saved: placements, version: result?.version ?? version, mode: 'view', saving: false, selectedId: null, past: [], future: [] })
       get().notify('배치를 저장했어요')
     } catch (e) {
       set({ saving: false })
+      if (e.itemId && get().placements[e.itemId]) set({ selectedId: e.itemId })
       get().notify(e.message || '배치를 저장하지 못했어요')
     }
   },

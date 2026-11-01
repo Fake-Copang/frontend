@@ -34,29 +34,49 @@ const MOCK_PLACEMENTS = {
 }
 
 let mockSaved = structuredClone(MOCK_PLACEMENTS)
+let mockVersion = 0
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export class ApiError extends Error {
+  constructor(message, { status, code, itemId } = {}) {
+    super(message)
+    this.status = status
+    this.code = code
+    this.itemId = itemId
+  }
+}
+
+async function toApiError(res, fallback) {
+  const body = await res.json().catch(() => null)
+  return new ApiError(body?.message || fallback, { status: res.status, code: body?.code, itemId: body?.itemId })
+}
 
 export async function fetchRoom() {
   if (!API_URL) {
     await wait(300)
-    return { items: MOCK_ITEMS, placements: structuredClone(mockSaved) }
+    return { room: { version: mockVersion }, items: MOCK_ITEMS, placements: structuredClone(mockSaved) }
   }
   const res = await fetch(`${API_URL}/room`, { credentials: 'include' })
-  if (!res.ok) throw new Error('방 정보를 불러오지 못했어요.')
+  if (!res.ok) throw await toApiError(res, '방 정보를 불러오지 못했어요.')
   return res.json()
 }
 
-export async function saveRoom(placements) {
+export async function saveRoom(placements, version) {
   if (!API_URL) {
     await wait(400)
+    if (version !== mockVersion) {
+      throw new ApiError('다른 곳에서 배치가 바뀌었어요. 새로고침 후 다시 시도해 주세요', { status: 409, code: 'VERSION_CONFLICT' })
+    }
     mockSaved = structuredClone(placements)
-    return
+    mockVersion += 1
+    return { version: mockVersion }
   }
   const res = await fetch(`${API_URL}/room/placements`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ placements }),
+    body: JSON.stringify({ version, placements }),
   })
-  if (!res.ok) throw new Error('배치를 저장하지 못했어요.')
+  if (!res.ok) throw await toApiError(res, '배치를 저장하지 못했어요.')
+  return res.json()
 }
