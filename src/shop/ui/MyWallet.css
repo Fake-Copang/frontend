@@ -1,0 +1,129 @@
+.wallet-page {
+  --blue: #2d5bd6;
+  --blue-dark: #2149b3;
+  --ink: #1c1b19;
+  --muted: #8a867d;
+  --line: #e6e4df;
+  --canvas: #f6f5f2;
+
+  min-height: 80vh;
+  padding: 24px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Pretendard', -apple-system, 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.wallet-page__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.wallet-page__status {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.wallet-card {
+  max-width: 720px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.wallet-card h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wallet-card__muted {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.wallet-card__label {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.wallet-card__balance {
+  margin: 4px 0 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wallet-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-primary,
+.btn-outline {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  border: none;
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--blue-dark);
+}
+
+.btn-primary:disabled {
+  background: #c9cdd6;
+  cursor: default;
+}
+
+.btn-outline {
+  border: 1px solid var(--blue);
+  background: #fff;
+  color: var(--blue);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #eef2ff;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.savings__main {
+  margin: 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.savings__compare {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.savings__compare--up {
+  color: #1a7f3c;
+}
+
+.savings__compare--down {
+  color: #c2410c;
+}

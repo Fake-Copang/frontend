@@ -3,7 +3,7 @@ import { useCart, useUpdateCartItemQuantity, useRemoveCartItem, useCheckout } fr
 import CartItemRow from './CartItemRow';
 import './Cart.css';
 
-export default function Cart() {
+export default function Cart({ onOrderComplete, onGoWallet } = {}) {
   const { data: cartItems, isLoading, isError } = useCart();
   const { mutate: changeQuantity } = useUpdateCartItemQuantity();
   const { mutate: removeItem } = useRemoveCartItem();
@@ -17,8 +17,8 @@ export default function Cart() {
 
   const { mutate: runCheckout, isPending: isCheckingOut } = useCheckout({
     onSuccess: () => {
-      // TODO: react-router 연결되면 주문 완료 페이지로 이동
-      alert('결제가 완료됐어요. 곧 배송 상태를 확인할 수 있어요.');
+      if (onOrderComplete) onOrderComplete();
+      else alert('결제가 완료됐어요. 곧 배송 상태를 확인할 수 있어요.');
     },
     onInsufficientBalance: () => setShowChargeModal(true),
   });
@@ -100,7 +100,14 @@ export default function Cart() {
         <div className="cart-page__modal-backdrop" onClick={() => setShowChargeModal(false)}>
           <div className="cart-page__modal" onClick={(e) => e.stopPropagation()}>
             <p>가상 잔액이 부족해요.</p>
-            <button type="button" className="btn btn--primary" onClick={() => setShowChargeModal(false)}>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => {
+                setShowChargeModal(false);
+                onGoWallet?.();
+              }}
+            >
               잔액 충전하러 가기
             </button>
           </div>

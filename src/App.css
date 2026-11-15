@@ -24,3 +24,11 @@ body {
   border-color: #111;
   color: #fff;
 }
+
+.app-tabs__balance {
+  margin-left: auto;
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1b19;
+}

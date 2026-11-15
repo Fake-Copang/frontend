@@ -39,7 +39,7 @@ export default function ProductList() {
   }
 
   function handleAddToCart(product) {
-    addToCart(product.id);
+    addToCart(product);
   }
 
   return (

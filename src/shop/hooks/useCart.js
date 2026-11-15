@@ -17,7 +17,7 @@ export function useCart() {
 export function useAddToCart() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (productId) => addToCart(productId),
+    mutationFn: (product) => addToCart(product),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   });
 }
@@ -45,7 +45,7 @@ export function useCheckout({ onSuccess, onInsufficientBalance } = {}) {
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['savings'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       onSuccess?.(order);
     },
     onError: (err) => {

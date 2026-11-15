@@ -1,78 +1,48 @@
 import axios from 'axios';
+import {
+  MOCK_USER_ID,
+  readCart,
+  writeCart,
+  readBalance,
+  writeBalance,
+  readOrders,
+  writeOrders,
+} from './mockDb';
 
-// 백엔드가 준비되면 false로 바꾸면 실제 API(/api/v1/...)를 호출함
-const USE_MOCK = true;
+/*
+ * 장바구니는 DB에 저장하지 않고 이 브라우저(localStorage)에만 저장한다. (팀 결정)
+ * 서버와 통신하는 건 '결제(checkout)'뿐이다.
+ *
+ * USE_MOCK_CHECKOUT = true  : 결제도 브라우저 안에서만 처리 (잔액 차감 + 주문 생성을 흉내)
+ * USE_MOCK_CHECKOUT = false : 백엔드 POST /api/orders로 주문 생성
+ *   - 아직 백엔드에 지갑 API가 없어서 잔액 차감/부족 검사는 되지 않음 (TODO)
+ */
+const USE_MOCK_CHECKOUT = true;
 
-const apiClient = axios.create({ baseURL: '/api/v1' });
+const CURRENT_USER_ID = MOCK_USER_ID; // TODO: 로그인이 붙으면 실제 사용자 id로 교체
+const apiClient = axios.create({ baseURL: '/api' });
 
-/* ---------------- 실제 API ---------------- */
+/* ---------------- 장바구니 (항상 로컬) ---------------- */
 
-async function realFetchCart() {
-  const { data } = await apiClient.get('/cart');
-  return data; // [{ id, productId, name, price, imageUrl, quantity }, ...]
+export async function fetchCart() {
+  return readCart(); // [{ id, productId, name, price, imageUrl, quantity }, ...]
 }
 
-async function realAddToCart(productId, quantity = 1) {
-  const { data } = await apiClient.post('/cart', { productId, quantity });
-  return data;
-}
-
-async function realUpdateCartItemQuantity(cartItemId, quantity) {
-  const { data } = await apiClient.patch(`/cart/${cartItemId}`, { quantity });
-  return data;
-}
-
-async function realRemoveCartItem(cartItemId) {
-  await apiClient.delete(`/cart/${cartItemId}`);
-}
-
-async function realCheckout(cartItemIds) {
-  const { data } = await apiClient.post('/orders', { cartItemIds });
-  return data;
-}
-
-/* ---------------- 임시 mock (localStorage) ---------------- */
-
-const CART_KEY = 'mock-cart';
-const BALANCE_KEY = 'mock-balance';
-const DEFAULT_BALANCE = 1_000_000;
-const USD_TO_KRW = 1300; // DummyJSON 가격이 달러라서 원화처럼 보이게 환산
-
-function readCart() {
-  try {
-    return JSON.parse(localStorage.getItem(CART_KEY)) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCart(items) {
-  localStorage.setItem(CART_KEY, JSON.stringify(items));
-}
-
-function readBalance() {
-  const saved = localStorage.getItem(BALANCE_KEY);
-  return saved === null ? DEFAULT_BALANCE : Number(saved);
-}
-
-async function mockFetchCart() {
-  return readCart();
-}
-
-async function mockAddToCart(productId, quantity = 1) {
+// product: 상품 목록의 상품 객체 { id, name, price, imageUrl }
+// 담는 시점의 이름/가격/이미지를 같이 저장해서, 장바구니를 그릴 때 따로 조회하지 않는다.
+export async function addToCart(product, quantity = 1) {
   const items = readCart();
-  const existing = items.find((item) => item.productId === productId);
+  const existing = items.find((item) => item.productId === product.id);
 
   if (existing) {
     existing.quantity += quantity;
   } else {
-    const { data: product } = await axios.get(`https://dummyjson.com/products/${productId}`);
     items.push({
-      id: Date.now(),
-      productId,
-      name: product.title,
-      price: Math.round(product.price * USD_TO_KRW),
-      imageUrl: product.thumbnail,
+      id: product.id, // 장바구니엔 상품당 한 줄만 있으므로 상품 id가 곧 항목 id (Date.now()는 같은 순간에 담으면 겹침)
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
       quantity,
     });
   }
@@ -81,7 +51,7 @@ async function mockAddToCart(productId, quantity = 1) {
   return items;
 }
 
-async function mockUpdateCartItemQuantity(cartItemId, quantity) {
+export async function updateCartItemQuantity(cartItemId, quantity) {
   const items = readCart().map((item) =>
     item.id === cartItemId ? { ...item, quantity } : item
   );
@@ -89,13 +59,20 @@ async function mockUpdateCartItemQuantity(cartItemId, quantity) {
   return items;
 }
 
-async function mockRemoveCartItem(cartItemId) {
+export async function removeCartItem(cartItemId) {
   writeCart(readCart().filter((item) => item.id !== cartItemId));
 }
 
+/* ---------------- 결제 ---------------- */
+
+// 결제 후 장바구니에서 결제한 항목을 지움
+function removeFromCart(cartItemIds) {
+  writeCart(readCart().filter((item) => !cartItemIds.includes(item.id)));
+}
+
+// mock: 잔액 확인 → 잔액 차감 → 주문 생성(백엔드 OrderResponse와 같은 모양) → 장바구니에서 제거
 async function mockCheckout(cartItemIds) {
-  const items = readCart();
-  const targets = items.filter((item) => cartItemIds.includes(item.id));
+  const targets = readCart().filter((item) => cartItemIds.includes(item.id));
   const totalPrice = targets.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const balance = readBalance();
 
@@ -105,17 +82,38 @@ async function mockCheckout(cartItemIds) {
     throw err;
   }
 
-  localStorage.setItem(BALANCE_KEY, String(balance - totalPrice));
-  writeCart(items.filter((item) => !cartItemIds.includes(item.id)));
-  return { orderId: Date.now(), totalPrice };
+  const now = Date.now();
+  const order = {
+    id: now,
+    userId: CURRENT_USER_ID,
+    totalPrice,
+    orderedAt: new Date(now).toISOString(),
+    estimatedDeliveryHours: 3 + Math.floor(Math.random() * 4), // 3~6시간
+    status: 'ORDERED',
+    items: targets.map((item, index) => ({
+      id: now + index,
+      productId: item.productId,
+      productName: item.name,
+      orderCount: item.quantity,
+      unitPrice: item.price,
+    })),
+  };
+
+  writeBalance(balance - totalPrice);
+  writeOrders([...readOrders(), order]);
+  removeFromCart(cartItemIds);
+  return order;
 }
 
-/* ---------------- export ---------------- */
+// 백엔드 주문 API: POST /api/orders  { userId, items: [{ productId, orderCount }] }
+async function realCheckout(cartItemIds) {
+  const targets = readCart().filter((item) => cartItemIds.includes(item.id));
+  const { data } = await apiClient.post('/orders', {
+    userId: CURRENT_USER_ID,
+    items: targets.map((item) => ({ productId: item.productId, orderCount: item.quantity })),
+  });
+  removeFromCart(cartItemIds); // 서버 주문이 성공한 뒤에만 장바구니에서 지움
+  return data;
+}
 
-export const fetchCart = USE_MOCK ? mockFetchCart : realFetchCart;
-export const addToCart = USE_MOCK ? mockAddToCart : realAddToCart;
-export const updateCartItemQuantity = USE_MOCK
-  ? mockUpdateCartItemQuantity
-  : realUpdateCartItemQuantity;
-export const removeCartItem = USE_MOCK ? mockRemoveCartItem : realRemoveCartItem;
-export const checkout = USE_MOCK ? mockCheckout : realCheckout;
+export const checkout = USE_MOCK_CHECKOUT ? mockCheckout : realCheckout;
