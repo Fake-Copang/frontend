@@ -83,7 +83,10 @@ export async function fetchRoom() {
     await wait(300)
     return { room: { version: mockVersion }, items: MOCK_ITEMS.map(normalizeItem), placements: structuredClone(mockSaved) }
   }
-  const res = await fetch(`${API_URL}/room`, { credentials: 'include' })
+  const res = await fetch(`${API_URL}/room`, {
+    credentials: 'include',
+    headers: { 'ngrok-skip-browser-warning': 'true' },
+  })
   if (!res.ok) throw await toApiError(res, '방 정보를 불러오지 못했어요.')
   const data = await res.json()
   return { ...data, items: data.items.map(normalizeItem) }
@@ -101,7 +104,7 @@ export async function saveRoom(placements, version) {
   }
   const res = await fetch(`${API_URL}/room/placements`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
     credentials: 'include',
     body: JSON.stringify({ version, placements }),
   })
