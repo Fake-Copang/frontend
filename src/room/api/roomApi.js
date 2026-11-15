@@ -33,6 +33,33 @@ const MOCK_PLACEMENTS = {
   'wall-shelf': { wall: 'back', col: 4, row: 3 }
 }
 
+const CELL_CM = 50
+const ROW_CM = 30
+const DEFAULT_COLOR = '#d6d3ca'
+const toCells = (cm, unit) => (cm > 0 ? Math.ceil(cm / unit) : 1)
+
+function normalizeItem(raw) {
+  const kind = raw.kind ?? 'floor'
+  const item = {
+    id: String(raw.id),
+    name: raw.name,
+    kind,
+    w: raw.w ?? toCells(raw.size_x, CELL_CM),
+    color: raw.color ?? DEFAULT_COLOR,
+    image: raw.image ?? raw.image_url ?? null,
+    model: raw.model ?? raw.model_url ?? null,
+    surface: raw.surface ?? raw.is_surface ?? false,
+    stackable: raw.stackable ?? false,
+  }
+  if (kind === 'wall') {
+    item.h = raw.h ?? toCells(raw.size_y, ROW_CM)
+  } else {
+    item.d = raw.d ?? toCells(raw.size_z, CELL_CM)
+    item.height = raw.height ?? (raw.size_y > 0 ? raw.size_y / CELL_CM : 1)
+  }
+  return item
+}
+
 let mockSaved = structuredClone(MOCK_PLACEMENTS)
 let mockVersion = 0
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -54,11 +81,12 @@ async function toApiError(res, fallback) {
 export async function fetchRoom() {
   if (!API_URL) {
     await wait(300)
-    return { room: { version: mockVersion }, items: MOCK_ITEMS, placements: structuredClone(mockSaved) }
+    return { room: { version: mockVersion }, items: MOCK_ITEMS.map(normalizeItem), placements: structuredClone(mockSaved) }
   }
   const res = await fetch(`${API_URL}/room`, { credentials: 'include' })
   if (!res.ok) throw await toApiError(res, '방 정보를 불러오지 못했어요.')
-  return res.json()
+  const data = await res.json()
+  return { ...data, items: data.items.map(normalizeItem) }
 }
 
 export async function saveRoom(placements, version) {
